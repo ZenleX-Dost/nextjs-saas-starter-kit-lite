@@ -1,4 +1,4 @@
-import { User, Microscope } from 'lucide-react';
+import { User, Microscope, TrendingUp, CheckSquare, Shield } from 'lucide-react';
 import { z } from 'zod';
 
 import { NavigationConfigSchema } from '@kit/ui/navigation-schema';
@@ -16,6 +16,21 @@ const routes = [
         path: '/home/analysis',
         Icon: <Microscope className={iconClasses} />,
         end: true,
+      },
+      {
+        label: 'Analytics',
+        path: '/home/analytics',
+        Icon: <TrendingUp className={iconClasses} />,
+      },
+      {
+        label: 'Review Queue',
+        path: '/home/review-queue',
+        Icon: <CheckSquare className={iconClasses} />,
+      },
+      {
+        label: 'Compliance',
+        path: '/home/compliance',
+        Icon: <Shield className={iconClasses} />,
       },
     ],
   },
