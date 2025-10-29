@@ -6,7 +6,10 @@
       "~/*": ["./app/*"],
       "~/config/*": ["./config/*"],
       "~/components/*": ["./components/*"],
-      "~/lib/*": ["./lib/*"]
+      "~/lib/*": ["./lib/*"],
+      "~/types/*": ["./types/*"],
+      "~/types": ["./types/index.ts"],
+      "~/store/*": ["./store/*"]
     },
     "plugins": [
       {

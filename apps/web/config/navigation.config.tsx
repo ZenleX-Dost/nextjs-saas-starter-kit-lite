@@ -1,4 +1,4 @@
-import { Home, User } from 'lucide-react';
+import { User, Microscope } from 'lucide-react';
 import { z } from 'zod';
 
 import { NavigationConfigSchema } from '@kit/ui/navigation-schema';
@@ -12,9 +12,9 @@ const routes = [
     label: 'common:routes.application',
     children: [
       {
-        label: 'common:routes.home',
-        path: pathsConfig.app.home,
-        Icon: <Home className={iconClasses} />,
+        label: 'XAI Analysis',
+        path: '/home/analysis',
+        Icon: <Microscope className={iconClasses} />,
         end: true,
       },
     ],
