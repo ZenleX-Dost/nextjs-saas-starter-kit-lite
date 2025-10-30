@@ -1,4 +1,4 @@
-import { User, Microscope, TrendingUp, CheckSquare, Shield } from 'lucide-react';
+import { User, Microscope, TrendingUp, CheckSquare, Shield, Settings, Tag } from 'lucide-react';
 import { z } from 'zod';
 
 import { NavigationConfigSchema } from '@kit/ui/navigation-schema';
@@ -31,6 +31,16 @@ const routes = [
         label: 'Compliance',
         path: '/home/compliance',
         Icon: <Shield className={iconClasses} />,
+      },
+      {
+        label: 'Custom Defects',
+        path: '/home/custom-defects',
+        Icon: <Settings className={iconClasses} />,
+      },
+      {
+        label: 'Dataset Labeling',
+        path: '/home/labeling',
+        Icon: <Tag className={iconClasses} />,
       },
     ],
   },

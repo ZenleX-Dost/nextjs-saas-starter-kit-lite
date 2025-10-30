@@ -179,13 +179,18 @@ class RadiKalAPI {
     image_base64?: string;
     target_class?: number;
     file?: File; // Accept file directly
+    methods?: string; // Comma-separated methods: gradcam,lime,shap,ig,all
   }) {
     // If we have a file, use it directly with /api/xai-qc/explain
     if (data.file) {
       const formData = new FormData();
       formData.append('file', data.file);
 
-      const response = await this.client.post('/api/xai-qc/explain', formData, {
+      // Build URL with methods parameter
+      const methods = data.methods || 'gradcam';
+      const url = `/api/xai-qc/explain?methods=${encodeURIComponent(methods)}`;
+
+      const response = await this.client.post(url, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

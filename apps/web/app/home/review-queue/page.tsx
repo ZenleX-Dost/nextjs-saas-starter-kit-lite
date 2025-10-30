@@ -8,6 +8,7 @@
  * - Approve/Reject/Escalate workflow
  * - Add annotations and comments
  * - Review history
+ * - Add corrections to training (Active Learning Integration)
  */
 
 import { useState, useEffect } from 'react';
@@ -18,9 +19,12 @@ import {
   MessageSquare,
   User,
   Clock,
-  FileText
+  FileText,
+  BookmarkPlus
 } from 'lucide-react';
 import Image from 'next/image';
+import { customDefectsAPI } from '~/lib/radikal/custom-defects-api';
+import { CustomDefectType } from '~/types/custom-defects';
 
 interface ReviewQueueItem {
   analysis_id: string;
@@ -40,10 +44,26 @@ export default function ReviewQueuePage() {
   const [filter, setFilter] = useState<string>('pending');
   const [comments, setComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  
+  // Active Learning Integration
+  const [showTrainingModal, setShowTrainingModal] = useState(false);
+  const [defectTypes, setDefectTypes] = useState<CustomDefectType[]>([]);
+  const [selectedDefectTypeId, setSelectedDefectTypeId] = useState<number | null>(null);
+  const [addingToTraining, setAddingToTraining] = useState(false);
 
   useEffect(() => {
     fetchQueue();
+    loadDefectTypes();
   }, [filter]);
+
+  const loadDefectTypes = async () => {
+    try {
+      const types = await customDefectsAPI.getCustomDefectTypes(true);
+      setDefectTypes(types);
+    } catch (error) {
+      console.error('Failed to load defect types:', error);
+    }
+  };
 
   const fetchQueue = async () => {
     try {
@@ -104,6 +124,52 @@ export default function ReviewQueuePage() {
       alert('Failed to submit review. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAddToTraining = async () => {
+    if (!selectedItem || !selectedDefectTypeId) {
+      alert('Please select a defect type');
+      return;
+    }
+
+    try {
+      setAddingToTraining(true);
+      
+      const response = await fetch('http://localhost:8000/api/xai-qc/reviews/add-to-training', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis_id: selectedItem.analysis_id,
+          corrected_defect_type_id: selectedDefectTypeId,
+          confidence: selectedItem.confidence,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to add to training');
+      }
+
+      const result = await response.json();
+      
+      alert(
+        `✅ ${result.message}\n\n` +
+        `Defect Type: ${result.defect_type}\n` +
+        `Samples: ${result.current_samples}/${result.min_required}\n` +
+        `${result.ready_for_training ? '✓ Ready for training!' : '⏳ Need more samples'}`
+      );
+      
+      setShowTrainingModal(false);
+      setSelectedDefectTypeId(null);
+      
+      // Reload defect types to update counts
+      await loadDefectTypes();
+    } catch (error: any) {
+      console.error('Failed to add to training:', error);
+      alert(error.message || 'Failed to add to training');
+    } finally {
+      setAddingToTraining(false);
     }
   };
 
@@ -306,34 +372,50 @@ export default function ReviewQueuePage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => submitReview('needs_second_opinion')}
-                  disabled={submitting}
-                  className="flex items-center px-6 py-3 border border-orange-500 text-orange-600 dark:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-50"
-                >
-                  <AlertCircle className="w-5 h-5 mr-2" />
-                  Request Second Opinion
-                </button>
+              <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+                {/* Add to Training Button */}
+                {defectTypes.length > 0 && (
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => setShowTrainingModal(true)}
+                      className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <BookmarkPlus className="w-5 h-5 mr-2" />
+                      Add to Training Dataset
+                    </button>
+                  </div>
+                )}
 
-                <div className="flex items-center space-x-3">
+                {/* Review Actions */}
+                <div className="flex items-center justify-between">
                   <button
-                    onClick={() => submitReview('rejected')}
+                    onClick={() => submitReview('needs_second_opinion')}
                     disabled={submitting}
-                    className="flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    className="flex items-center px-6 py-3 border border-orange-500 text-orange-600 dark:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-50"
                   >
-                    <XCircle className="w-5 h-5 mr-2" />
-                    Reject
+                    <AlertCircle className="w-5 h-5 mr-2" />
+                    Request Second Opinion
                   </button>
-                  
-                  <button
-                    onClick={() => submitReview('approved')}
-                    disabled={submitting}
-                    className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                  >
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Approve
-                  </button>
+
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => submitReview('rejected')}
+                      disabled={submitting}
+                      className="flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      <XCircle className="w-5 h-5 mr-2" />
+                      Reject
+                    </button>
+                    
+                    <button
+                      onClick={() => submitReview('approved')}
+                      disabled={submitting}
+                      className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Approve
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -349,6 +431,122 @@ export default function ReviewQueuePage() {
           )}
         </div>
       </div>
+
+      {/* Add to Training Modal */}
+      {showTrainingModal && selectedItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h2 className="text-2xl font-bold">Add to Training Dataset</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Select the correct defect type for this image
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowTrainingModal(false);
+                  setSelectedDefectTypeId(null);
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Current Analysis Info */}
+              <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">Current Analysis</h3>
+                <div className="space-y-1 text-sm">
+                  <p>
+                    <span className="text-muted-foreground">Image:</span>{' '}
+                    <span className="font-medium">{selectedItem.image_name}</span>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">AI Prediction:</span>{' '}
+                    <span className="font-medium">{selectedItem.defect_type || 'N/A'}</span>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Confidence:</span>{' '}
+                    <span className="font-medium">{(selectedItem.confidence * 100).toFixed(1)}%</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Defect Type Selector */}
+              <div>
+                <label className="block text-sm font-medium mb-3">
+                  Select Correct Defect Type <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {defectTypes.map((defect) => (
+                    <button
+                      key={defect.id}
+                      onClick={() => setSelectedDefectTypeId(defect.id)}
+                      className={`w-full flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                        selectedDefectTypeId === defect.id
+                          ? 'bg-primary/10 border-primary'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {defect.color && (
+                          <div
+                            className="w-4 h-4 rounded"
+                            style={{ backgroundColor: defect.color }}
+                          />
+                        )}
+                        <div className="text-left">
+                          <div className="font-medium">{defect.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {defect.code} • {defect.current_sample_count}/{defect.min_samples_required} samples
+                          </div>
+                        </div>
+                      </div>
+                      {selectedDefectTypeId === defect.id && (
+                        <CheckCircle className="h-5 w-5 text-primary" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Help Text */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-800 dark:text-blue-400">
+                  <strong>💡 Active Learning:</strong> This image will be added to the training dataset
+                  for the selected defect type. When enough samples are collected, you can retrain
+                  the model to improve its accuracy.
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 p-6 border-t">
+              <button
+                onClick={() => {
+                  setShowTrainingModal(false);
+                  setSelectedDefectTypeId(null);
+                }}
+                className="px-6 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                disabled={addingToTraining}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddToTraining}
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                disabled={!selectedDefectTypeId || addingToTraining}
+              >
+                {addingToTraining ? 'Adding...' : 'Add to Training'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

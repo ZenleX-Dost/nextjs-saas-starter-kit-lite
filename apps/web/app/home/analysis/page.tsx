@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
+  const [selectedMethods, setSelectedMethods] = useState<string>('gradcam'); // XAI method selection
 
   const { addToHistory } = useAnalysisStore();
   const { addToast } = useUIStore();
@@ -71,6 +72,7 @@ export default function DashboardPage() {
         const explanation = await apiClient.getExplanations({
           image_id: detection.image_id,
           file: file, // Pass file directly
+          methods: selectedMethods, // Pass selected XAI methods
         });
         
         setExplanationResult(explanation);
@@ -289,6 +291,73 @@ export default function DashboardPage() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Upload a radiographic weld image for AI-powered defect detection
           </p>
+          
+          {/* XAI Method Selector */}
+          <div className="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+              🧠 XAI Explanation Methods
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <button
+                onClick={() => setSelectedMethods('gradcam')}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  selectedMethods === 'gradcam'
+                    ? 'bg-blue-600 text-white shadow-lg scale-105'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                Grad-CAM
+              </button>
+              <button
+                onClick={() => setSelectedMethods('lime')}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  selectedMethods === 'lime'
+                    ? 'bg-green-600 text-white shadow-lg scale-105'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                LIME
+              </button>
+              <button
+                onClick={() => setSelectedMethods('shap')}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  selectedMethods === 'shap'
+                    ? 'bg-purple-600 text-white shadow-lg scale-105'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                SHAP
+              </button>
+              <button
+                onClick={() => setSelectedMethods('ig')}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  selectedMethods === 'ig'
+                    ? 'bg-orange-600 text-white shadow-lg scale-105'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                Int. Grad.
+              </button>
+              <button
+                onClick={() => setSelectedMethods('all')}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  selectedMethods === 'all'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-105'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                All Methods
+              </button>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              {selectedMethods === 'gradcam' && '🔵 Grad-CAM: Class Activation Mapping (fast, recommended)'}
+              {selectedMethods === 'lime' && '🟢 LIME: Superpixel-based local explanations (slower)'}
+              {selectedMethods === 'shap' && '🟣 SHAP: Shapley value attributions (slower)'}
+              {selectedMethods === 'ig' && '🟠 Integrated Gradients: Path-based attributions (moderate)'}
+              {selectedMethods === 'all' && '🌈 All Methods: Complete comparison (slowest, most comprehensive)'}
+            </p>
+          </div>
+          
           <ImageUpload onUpload={handleImageUpload} isUploading={isProcessing} />
           
           {isProcessing && (
