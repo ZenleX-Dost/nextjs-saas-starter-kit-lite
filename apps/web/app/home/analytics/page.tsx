@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 interface TrendData {
-  date: string;
+  period: string;  // Date period from backend (YYYY-MM-DD)
   total_inspections: number;
   defect_count: number;
   defect_rate: number;
@@ -72,7 +72,19 @@ export default function AnalyticsPage() {
       }
       
       const data = await response.json();
-      setAnalytics(data);
+      
+      // Transform backend response to match frontend interface
+      const transformed = {
+        start_date: data.summary?.start_date || data.date_range?.start || '',
+        end_date: data.summary?.end_date || data.date_range?.end || '',
+        total_inspections: data.summary?.total_inspections || 0,
+        defect_rate: data.summary?.defect_rate || 0,
+        trends: data.trends || [],
+        defect_type_distribution: data.summary?.defect_type_distribution || {},
+        group_by: data.summary?.group_by || groupBy,
+      };
+      
+      setAnalytics(transformed);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -201,7 +213,7 @@ export default function AnalyticsPage() {
                 Defect Rate
               </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                {analytics?.defect_rate.toFixed(1)}%
+                {(analytics?.defect_rate ?? 0).toFixed(1)}%
               </p>
               <div className="flex items-center mt-2 space-x-1">
                 {getTrendIcon(trend)}
@@ -257,7 +269,7 @@ export default function AnalyticsPage() {
             {analytics?.trends.slice(-10).map((trend, idx) => (
               <div key={idx} className="flex items-center space-x-3">
                 <span className="text-xs text-gray-600 dark:text-gray-400 w-24">
-                  {new Date(trend.date).toLocaleDateString()}
+                  {new Date(trend.period).toLocaleDateString()}
                 </span>
                 <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-6 overflow-hidden">
                   <div
@@ -268,14 +280,14 @@ export default function AnalyticsPage() {
                         ? 'bg-orange-500'
                         : 'bg-green-500'
                     }`}
-                    style={{ width: `${Math.min(trend.defect_rate * 10, 100)}%` }}
+                    style={{ width: `${Math.min((trend.defect_rate ?? 0) * 10, 100)}%` }}
                   />
                 </div>
                 <span className="text-sm font-medium text-gray-900 dark:text-white w-16 text-right">
-                  {trend.defect_rate.toFixed(1)}%
+                  {(trend.defect_rate ?? 0).toFixed(1)}%
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
-                  {trend.defect_count}/{trend.total_inspections}
+                  {trend.defect_count ?? 0}/{trend.total_inspections ?? 0}
                 </span>
               </div>
             ))}
@@ -359,10 +371,10 @@ export default function AnalyticsPage() {
               {analytics?.trends.slice(-20).reverse().map((trend, idx) => (
                 <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-900">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {new Date(trend.date).toLocaleDateString()}
+                    {new Date(trend.period).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {trend.total_inspections}
+                    {trend.total_inspections ?? 0}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                     {trend.defect_count}
@@ -375,11 +387,11 @@ export default function AnalyticsPage() {
                         ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
                         : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                     }`}>
-                      {trend.defect_rate.toFixed(1)}%
+                      {(trend.defect_rate ?? 0).toFixed(1)}%
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {(trend.avg_confidence * 100).toFixed(1)}%
+                    {((trend.avg_confidence ?? 0) * 100).toFixed(1)}%
                   </td>
                 </tr>
               ))}

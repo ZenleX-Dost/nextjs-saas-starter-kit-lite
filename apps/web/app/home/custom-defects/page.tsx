@@ -58,18 +58,30 @@ export default function CustomDefectsPage() {
       setLoading(true);
       setError(null);
       
-      const [types, stats, jobs] = await Promise.all([
-        customDefectsAPI.getCustomDefectTypes(),
-        customDefectsAPI.getStatistics(),
-        customDefectsAPI.getTrainingJobs(10),
-      ]);
-      
+      // Load defect types first (most important)
+      const types = await customDefectsAPI.getCustomDefectTypes();
       setDefectTypes(types);
-      setStatistics(stats);
-      setActiveJobs(jobs.filter(j => j.status === 'running' || j.status === 'pending'));
+      
+      // Load statistics and jobs separately to avoid total failure
+      try {
+        const stats = await customDefectsAPI.getStatistics();
+        setStatistics(stats);
+      } catch (statsErr: any) {
+        console.warn('Failed to load statistics:', statsErr);
+        // Continue without stats
+      }
+      
+      try {
+        const jobs = await customDefectsAPI.getTrainingJobs(10);
+        setActiveJobs(jobs.filter(j => j.status === 'running' || j.status === 'pending'));
+      } catch (jobsErr: any) {
+        console.warn('Failed to load training jobs:', jobsErr);
+        // Continue without jobs
+      }
     } catch (err: any) {
       console.error('Failed to load custom defects:', err);
-      setError(err.response?.data?.detail || err.message || 'Failed to load data');
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to load data';
+      setError(`Error: ${errorMsg}. Backend URL: ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}`);
     } finally {
       setLoading(false);
     }
@@ -205,29 +217,29 @@ export default function CustomDefectsPage() {
       {statistics && (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-primary">{statistics.total_custom_types}</div>
+            <div className="text-2xl font-bold text-primary">{statistics.total_custom_types ?? 0}</div>
             <div className="text-sm text-muted-foreground">Total Types</div>
           </div>
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-green-600">{statistics.active_custom_types}</div>
+            <div className="text-2xl font-bold text-green-600">{statistics.active_custom_types ?? 0}</div>
             <div className="text-sm text-muted-foreground">Active</div>
           </div>
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-blue-600">{statistics.total_training_samples}</div>
+            <div className="text-2xl font-bold text-blue-600">{statistics.total_training_samples ?? 0}</div>
             <div className="text-sm text-muted-foreground">Training Samples</div>
           </div>
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
             <div className="text-2xl font-bold text-purple-600">
-              {statistics.avg_samples_per_type.toFixed(1)}
+              {(statistics.avg_samples_per_type ?? 0).toFixed(1)}
             </div>
             <div className="text-sm text-muted-foreground">Avg Samples</div>
           </div>
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-orange-600">{statistics.types_needing_samples}</div>
+            <div className="text-2xl font-bold text-orange-600">{statistics.types_needing_samples ?? 0}</div>
             <div className="text-sm text-muted-foreground">Need Samples</div>
           </div>
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-emerald-600">{statistics.types_ready_for_training}</div>
+            <div className="text-2xl font-bold text-emerald-600">{statistics.types_ready_for_training ?? 0}</div>
             <div className="text-sm text-muted-foreground">Ready to Train</div>
           </div>
         </div>

@@ -21,7 +21,8 @@ import {
   AlertOctagon, 
   Info, 
   Eye,
-  TrendingUp
+  TrendingUp,
+  Trash2
 } from 'lucide-react';
 import { useAnalysisStore } from '~/store/analysisStore';
 import { useUIStore } from '~/store/uiStore';
@@ -36,7 +37,7 @@ export default function DashboardPage() {
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
   const [selectedMethods, setSelectedMethods] = useState<string>('gradcam'); // XAI method selection
 
-  const { addToHistory } = useAnalysisStore();
+  const { addToHistory, clearHistory } = useAnalysisStore();
   const { addToast } = useUIStore();
   const { settings } = useSettingsStore();
 
@@ -143,18 +144,42 @@ export default function DashboardPage() {
     }
   };
 
+  const handleClearCache = () => {
+    if (confirm('Are you sure you want to clear all cached analysis history from your browser? This will not affect data saved in the database.')) {
+      clearHistory();
+      addToast({
+        type: 'success',
+        title: 'Cache Cleared',
+        message: 'Browser cache has been cleared successfully',
+        duration: 3000,
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header with Enhanced Styling */}
         <div className="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 shadow-xl">
-          <h1 className="text-4xl font-bold text-white mb-3 flex items-center gap-3">
-            <Microscope className="w-12 h-12" />
-            RadiKal XAI Quality Control
-          </h1>
-          <p className="text-blue-100 text-lg">
-            AI-Powered Radiographic Defect Detection & Explainable Analysis
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-3 flex items-center gap-3">
+                <Microscope className="w-12 h-12" />
+                RadiKal XAI Quality Control
+              </h1>
+              <p className="text-blue-100 text-lg">
+                AI-Powered Radiographic Defect Detection & Explainable Analysis
+              </p>
+            </div>
+            <button
+              onClick={handleClearCache}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors duration-200 backdrop-blur-sm border border-white/20"
+              title="Clear browser cache"
+            >
+              <Trash2 className="w-5 h-5" />
+              <span className="hidden sm:inline">Clear Cache</span>
+            </button>
+          </div>
         </div>
 
         {/* Quick Stats Overview */}
@@ -295,7 +320,7 @@ export default function DashboardPage() {
           {/* XAI Method Selector */}
           <div className="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
             <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
-              🧠 XAI Explanation Methods
+               XAI Explanation Methods
             </label>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <button
@@ -350,11 +375,11 @@ export default function DashboardPage() {
               </button>
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-              {selectedMethods === 'gradcam' && '🔵 Grad-CAM: Class Activation Mapping (fast, recommended)'}
-              {selectedMethods === 'lime' && '🟢 LIME: Superpixel-based local explanations (slower)'}
-              {selectedMethods === 'shap' && '🟣 SHAP: Shapley value attributions (slower)'}
-              {selectedMethods === 'ig' && '🟠 Integrated Gradients: Path-based attributions (moderate)'}
-              {selectedMethods === 'all' && '🌈 All Methods: Complete comparison (slowest, most comprehensive)'}
+              {selectedMethods === 'gradcam' && ' Grad-CAM: Class Activation Mapping (fast, recommended)'}
+              {selectedMethods === 'lime' && ' LIME: Superpixel-based local explanations (slower)'}
+              {selectedMethods === 'shap' && ' SHAP: Shapley value attributions (slower)'}
+              {selectedMethods === 'ig' && ' Integrated Gradients: Path-based attributions (moderate)'}
+              {selectedMethods === 'all' && ' All Methods: Complete comparison (slowest, most comprehensive)'}
             </p>
           </div>
           

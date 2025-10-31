@@ -28,7 +28,10 @@ import {
 interface Standard {
   code: string;
   name: string;
-  description: string;
+  description?: string;
+  organization?: string;
+  year?: string;
+  application?: string;
 }
 
 interface ComplianceResult {
@@ -80,14 +83,39 @@ export default function ComplianceDashboardPage() {
       if (!response.ok) throw new Error('Failed to fetch standards');
       
       const data = await response.json();
-      setStandards(data);
       
-      // Set first standard as default
-      if (data.length > 0) {
-        setSelectedStandard(data[0].code);
+      // Backend returns {"standards": [...]} so extract the array
+      const standardsArray = data.standards || data;
+      
+      // Ensure we have an array
+      if (Array.isArray(standardsArray)) {
+        setStandards(standardsArray);
+        
+        // Set first standard as default
+        if (standardsArray.length > 0) {
+          setSelectedStandard(standardsArray[0].code);
+        }
+      } else {
+        console.error('Standards data is not an array:', data);
+        // Set default standards if API fails
+        setStandards([
+          { code: 'AWS D1.1', name: 'AWS D1.1 - Structural Welding Code - Steel', organization: 'AWS', year: '2020', application: 'Structural steel' },
+          { code: 'ISO 5817-B', name: 'ISO 5817 Quality Level B', organization: 'ISO', year: '2014', application: 'High quality welds' },
+          { code: 'ASME BPVC', name: 'ASME Boiler and Pressure Vessel Code', organization: 'ASME', year: '2021', application: 'Pressure vessels' },
+          { code: 'API 1104', name: 'API 1104 - Pipeline Welding', organization: 'API', year: '2021', application: 'Pipeline welding' }
+        ]);
+        setSelectedStandard('AWS D1.1');
       }
     } catch (error) {
       console.error('Failed to fetch standards:', error);
+      // Set default standards if API call fails
+      setStandards([
+        { code: 'AWS D1.1', name: 'AWS D1.1 - Structural Welding Code - Steel', organization: 'AWS', year: '2020', application: 'Structural steel' },
+        { code: 'ISO 5817-B', name: 'ISO 5817 Quality Level B', organization: 'ISO', year: '2014', application: 'High quality welds' },
+        { code: 'ASME BPVC', name: 'ASME Boiler and Pressure Vessel Code', organization: 'ASME', year: '2021', application: 'Pressure vessels' },
+        { code: 'API 1104', name: 'API 1104 - Pipeline Welding', organization: 'API', year: '2021', application: 'Pipeline welding' }
+      ]);
+      setSelectedStandard('AWS D1.1');
     }
   };
 
